@@ -5,96 +5,117 @@ import '../constants/strings.dart';
 import '../models/account.dart';
 import '../models/transaction.dart';
 import '../services/account_service.dart';
-import '../services/qr_service.dart';
-import '../screens/pin_verification_screen.dart';
 import '../widgets/custom_button.dart';
 import '../widgets/custom_text_field.dart';
 
-class TransferScreen extends StatefulWidget {
-  final PaymentQRData? qrData;
-  
-  const TransferScreen({Key? key, this.qrData}) : super(key: key);
+class BillPaymentScreen extends StatefulWidget {
+  const BillPaymentScreen({Key? key}) : super(key: key);
 
   @override
-  State<TransferScreen> createState() => _TransferScreenState();
+  State<BillPaymentScreen> createState() => _BillPaymentScreenState();
 }
 
-class _TransferScreenState extends State<TransferScreen> {
+class _BillPaymentScreenState extends State<BillPaymentScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _accountNumberController = TextEditingController();
-  final _accountNameController = TextEditingController();
+  final _billNumberController = TextEditingController();
   final _amountController = TextEditingController();
-  final _descriptionController = TextEditingController();
   final AccountService _accountService = AccountService();
   
   List<Account> _accounts = [];
   Account? _selectedAccount;
+  String? _selectedBillType;
   bool _isLoading = false;
   bool _isProcessing = false;
+
+  final List<Map<String, dynamic>> _billTypes = [
+    {
+      'name': 'PLN (Electricity)',
+      'icon': Icons.flash_on,
+      'color': Colors.yellow[700]!,
+      'type': 'electricity',
+      'description': 'Pay your electricity bill'
+    },
+    {
+      'name': 'PDAM (Water)',
+      'icon': Icons.water_drop,
+      'color': Colors.blue,
+      'type': 'water',
+      'description': 'Pay your water bill'
+    },
+    {
+      'name': 'Internet',
+      'icon': Icons.wifi,
+      'color': Colors.green,
+      'type': 'internet',
+      'description': 'Pay your internet bill'
+    },
+    {
+      'name': 'Phone',
+      'icon': Icons.phone,
+      'color': Colors.orange,
+      'type': 'phone',
+      'description': 'Pay your phone bill'
+    },
+    {
+      'name': 'Gas',
+      'icon': Icons.local_gas_station,
+      'color': Colors.red,
+      'type': 'gas',
+      'description': 'Pay your gas bill'
+    },
+    {
+      'name': 'Insurance',
+      'icon': Icons.security,
+      'color': Colors.purple,
+      'type': 'insurance',
+      'description': 'Pay your insurance premium'
+    },
+  ];
 
   @override
   void initState() {
     super.initState();
     _loadAccounts();
-    _prefillFromQR();
   }
 
-  void _prefillFromQR() {
-    if (widget.qrData != null) {
-      _accountNumberController.text = widget.qrData!.accountNumber;
-      _accountNameController.text = widget.qrData!.accountName ?? '';
-      if (widget.qrData!.amount != null) {
-        _amountController.text = widget.qrData!.amount!.toStringAsFixed(0);
-      }
-      if (widget.qrData!.description != null) {
-        _descriptionController.text = widget.qrData!.description!;
-      }
-    }
+  @override
+  void dispose() {
+    _billNumberController.dispose();
+    _amountController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadAccounts() async {
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+    });
+
     try {
       final accounts = await _accountService.getAccounts();
       setState(() {
         _accounts = accounts;
         _selectedAccount = accounts.isNotEmpty ? accounts.first : null;
-        _isLoading = false;
       });
     } catch (e) {
-      setState(() => _isLoading = false);
-      _showErrorSnackBar('Failed to load accounts: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to load accounts: $e'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
     }
   }
 
-  Future<void> _processTransfer() async {
-    if (!_formKey.currentState!.validate() || _selectedAccount == null) {
-      return;
-    }
-
-    // Show PIN verification before processing transfer
-    final bool? pinVerified = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(
-        builder: (context) => PinVerificationScreen(
-          title: 'Verify Transfer',
-          description: 'Enter your PIN to confirm this transfer',
-          transactionData: {
-            'type': 'Fund Transfer',
-            'amount': 'Rp ${double.parse(_amountController.text).toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}',
-            'recipient': _accountNameController.text.isEmpty ? _accountNumberController.text : _accountNameController.text,
-            'account': _selectedAccount!.accountNumber,
-          },
-        ),
-      ),
-    );
-
-    if (pinVerified != true) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Transfer cancelled - PIN verification required'),
-          backgroundColor: AppColors.error,
-        ),
-      );
+  Future<void> _processBillPayment() async {
+    if (!_formKey.currentState!.validate() || 
+        _selectedAccount == null || 
+        _selectedBillType == null) {
       return;
     }
 
@@ -110,16 +131,12 @@ class _TransferScreenState extends State<TransferScreen> {
         return;
       }
 
-      final transaction = await _accountService.transferMoney(
-        fromAccountId: _selectedAccount!.id,
-        toAccountNumber: _accountNumberController.text,
+      final transaction = await _accountService.payBill(
+        accountId: _selectedAccount!.id,
+        billType: _selectedBillType!,
+        billNumber: _billNumberController.text,
         amount: amount,
-        description: _descriptionController.text.isEmpty 
-            ? 'Transfer to ${_accountNameController.text}' 
-            : _descriptionController.text,
-        recipientName: _accountNameController.text.isEmpty 
-            ? null 
-            : _accountNameController.text,
+        description: 'Bill Payment - $_selectedBillType',
       );
 
       setState(() => _isProcessing = false);
@@ -129,7 +146,7 @@ class _TransferScreenState extends State<TransferScreen> {
       
     } catch (e) {
       setState(() => _isProcessing = false);
-      _showErrorSnackBar('Transfer failed: $e');
+      _showErrorSnackBar('Bill payment failed: $e');
     }
   }
 
@@ -143,12 +160,12 @@ class _TransferScreenState extends State<TransferScreen> {
           color: AppColors.success,
           size: 64,
         ),
-        title: const Text('Transfer Successful'),
+        title: const Text('Payment Successful'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              'Your transfer of ${transaction.formattedAmountWithoutSign} has been processed successfully.',
+              'Your bill payment of ${transaction.formattedAmountWithoutSign} has been processed successfully.',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 16,
@@ -165,8 +182,8 @@ class _TransferScreenState extends State<TransferScreen> {
               child: Column(
                 children: [
                   _buildInfoRow('Reference', transaction.reference ?? 'N/A'),
-                  _buildInfoRow('To', transaction.recipientName ?? 'N/A'),
-                  _buildInfoRow('Account', transaction.recipientAccount ?? 'N/A'),
+                  _buildInfoRow('Bill Type', _selectedBillType ?? 'N/A'),
+                  _buildInfoRow('Bill Number', _billNumberController.text),
                 ],
               ),
             ),
@@ -220,15 +237,12 @@ class _TransferScreenState extends State<TransferScreen> {
     );
   }
 
-  String? _validateAccountNumber(String? value) {
+  String? _validateBillNumber(String? value) {
     if (value == null || value.isEmpty) {
-      return 'Account number is required';
+      return 'Bill number is required';
     }
-    if (value.length < 10) {
-      return 'Account number must be at least 10 digits';
-    }
-    if (!RegExp(r'^[0-9]+$').hasMatch(value)) {
-      return 'Account number must contain only digits';
+    if (value.length < 8) {
+      return 'Bill number must be at least 8 characters';
     }
     return null;
   }
@@ -241,8 +255,8 @@ class _TransferScreenState extends State<TransferScreen> {
     if (amount == null || amount <= 0) {
       return 'Please enter a valid amount';
     }
-    if (amount < 10000) {
-      return 'Minimum transfer amount is Rp 10,000';
+    if (amount < 1000) {
+      return 'Minimum payment amount is Rp 1,000';
     }
     if (_selectedAccount != null && amount > _selectedAccount!.availableBalance) {
       return 'Amount exceeds available balance';
@@ -251,20 +265,11 @@ class _TransferScreenState extends State<TransferScreen> {
   }
 
   @override
-  void dispose() {
-    _accountNumberController.dispose();
-    _accountNameController.dispose();
-    _amountController.dispose();
-    _descriptionController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Transfer Money'),
+        title: const Text('Pay Bills'),
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
         elevation: 0,
@@ -336,33 +341,92 @@ class _TransferScreenState extends State<TransferScreen> {
                     ),
                     const SizedBox(height: 24),
 
-                    // To Account Details
+                    // Bill Type Selection
                     Text(
-                      'To Account',
+                      'Select Bill Type',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
                         color: AppColors.textPrimary,
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    CustomTextField(
-                      controller: _accountNumberController,
-                      label: 'Account Number',
-                      keyboardType: TextInputType.number,
-                      validator: _validateAccountNumber,
-                    ),
-                    const SizedBox(height: 16),
-                    CustomTextField(
-                      controller: _accountNameController,
-                      label: 'Account Name (Optional)',
-                      textCapitalization: TextCapitalization.words,
+                    const SizedBox(height: 12),
+                    GridView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        childAspectRatio: 2.5,
+                        crossAxisSpacing: 12,
+                        mainAxisSpacing: 12,
+                      ),
+                      itemCount: _billTypes.length,
+                      itemBuilder: (context, index) {
+                        final billType = _billTypes[index];
+                        final isSelected = _selectedBillType == billType['type'];
+                        
+                        return GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              _selectedBillType = billType['type'];
+                            });
+                          },
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: AppColors.white,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: isSelected ? AppColors.primary : AppColors.divider,
+                                width: isSelected ? 2 : 1,
+                              ),
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.all(12),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    billType['icon'],
+                                    size: 24,
+                                    color: isSelected ? AppColors.primary : billType['color'],
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Text(
+                                          billType['name'],
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w600,
+                                            color: isSelected ? AppColors.primary : AppColors.textPrimary,
+                                          ),
+                                        ),
+                                        Text(
+                                          billType['description'],
+                                          style: TextStyle(
+                                            fontSize: 10,
+                                            color: AppColors.textSecondary,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        );
+                      },
                     ),
                     const SizedBox(height: 24),
 
-                    // Transfer Details
+                    // Bill Details
                     Text(
-                      'Transfer Details',
+                      'Bill Details',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
@@ -370,27 +434,27 @@ class _TransferScreenState extends State<TransferScreen> {
                       ),
                     ),
                     const SizedBox(height: 8),
+                    CustomTextField(
+                      controller: _billNumberController,
+                      label: 'Bill Number / Customer ID',
+                      keyboardType: TextInputType.text,
+                      validator: _validateBillNumber,
+                    ),
+                    const SizedBox(height: 16),
                     CustomTextField(
                       controller: _amountController,
                       label: 'Amount (IDR)',
                       keyboardType: TextInputType.number,
                       validator: _validateAmount,
                     ),
-                    const SizedBox(height: 16),
-                    CustomTextField(
-                      controller: _descriptionController,
-                      label: 'Description (Optional)',
-                      maxLines: 3,
-                      textCapitalization: TextCapitalization.sentences,
-                    ),
                     const SizedBox(height: 32),
 
-                    // Transfer Button
+                    // Pay Button
                     SizedBox(
                       width: double.infinity,
                       child: CustomButton(
-                        text: _isProcessing ? 'Processing...' : 'Transfer Money',
-                        onPressed: _isProcessing ? null : _processTransfer,
+                        text: _isProcessing ? 'Processing...' : 'Pay Bill',
+                        onPressed: _isProcessing ? null : _processBillPayment,
                         backgroundColor: AppColors.primary,
                       ),
                     ),

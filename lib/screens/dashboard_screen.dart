@@ -315,7 +315,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               icon: Icons.receipt_long,
               label: AppStrings.payBills,
               onTap: () {
-                // Navigate to bill payment screen
+                Navigator.pushNamed(context, '/bill_payment');
               },
             ),
             _buildQuickActionItem(

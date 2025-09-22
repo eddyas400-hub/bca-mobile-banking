@@ -5,6 +5,7 @@ import '../constants/strings.dart';
 import '../models/account.dart';
 import '../models/transaction.dart';
 import '../services/account_service.dart';
+import '../screens/pin_verification_screen.dart';
 import '../widgets/custom_button.dart';
 import '../widgets/custom_text_field.dart';
 
@@ -143,29 +144,30 @@ class _TopUpScreenState extends State<TopUpScreen> {
   }
 
   Future<void> _processTopUp() async {
-    // Processing top-up request
-    
-    if (!_formKey.currentState!.validate()) {
-      // Form validation failed
-      return;
-    }
+    if (!_formKey.currentState!.validate()) return;
+    if (_selectedAccount == null || _selectedProvider == null) return;
 
-    if (_selectedProvider == null) {
-      // No provider selected
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select a provider'),
-          backgroundColor: AppColors.red,
+    // Show PIN verification before processing top-up
+    final bool? pinVerified = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (context) => PinVerificationScreen(
+          title: 'Verify Top-up',
+          description: 'Enter your PIN to confirm this top-up',
+          transactionData: {
+            'type': 'Mobile Top-up',
+            'amount': 'Rp ${double.parse(_amountController.text).toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}',
+            'provider': _selectedProvider ?? 'Unknown',
+            'phone': _phoneNumberController.text,
+            'account': _selectedAccount!.name,
+          },
         ),
-      );
-      return;
-    }
+      ),
+    );
 
-    if (_selectedAccount == null) {
-      // No account selected
+    if (pinVerified != true) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Please select an account'),
+          content: Text('Top-up cancelled - PIN verification required'),
           backgroundColor: AppColors.red,
         ),
       );
@@ -189,13 +191,7 @@ class _TopUpScreenState extends State<TopUpScreen> {
       );
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Top-up successful! Transaction ID: ${transaction.reference}'),
-            backgroundColor: AppColors.green,
-          ),
-        );
-        Navigator.of(context).pop();
+        _showSuccessDialog(transaction);
       }
     } catch (e) {
       if (mounted) {
@@ -211,6 +207,102 @@ class _TopUpScreenState extends State<TopUpScreen> {
         _isProcessing = false;
       });
     }
+  }
+
+  void _showSuccessDialog(Transaction transaction) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: Row(
+            children: [
+              Icon(
+                Icons.check_circle,
+                color: AppColors.green,
+                size: 28,
+              ),
+              const SizedBox(width: 12),
+              const Text('Top-up Successful'),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Your top-up has been processed successfully.',
+                style: TextStyle(
+                  color: AppColors.textSecondary,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.background,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildDetailRow('Transaction ID', transaction.reference ?? 'N/A'),
+                    _buildDetailRow('Provider', _selectedProvider ?? 'Unknown'),
+                    _buildDetailRow('Phone Number', _phoneNumberController.text),
+                    _buildDetailRow('Amount', transaction.formattedAmount),
+                    _buildDetailRow('Date', transaction.formattedDate),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Close dialog
+                Navigator.of(context).pop(); // Go back to previous screen
+              },
+              child: Text(
+                'Done',
+                style: TextStyle(
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildDetailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 14,
+            ),
+          ),
+          Text(
+            value,
+            style: TextStyle(
+              color: AppColors.textPrimary,
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   void _setQuickAmount(double amount) {

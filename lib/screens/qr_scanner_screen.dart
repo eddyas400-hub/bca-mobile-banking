@@ -419,7 +419,12 @@ class _QRScannerScreenState extends State<QRScannerScreen>
           ElevatedButton(
             onPressed: () {
               Navigator.of(context).pop();
-              Navigator.of(context).pop(paymentData);
+              // Navigate to transfer screen with QR data
+              Navigator.pushNamed(
+                context,
+                '/transfer',
+                arguments: paymentData,
+              );
             },
             child: const Text('Proceed to Payment'),
           ),

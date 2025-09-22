@@ -4,6 +4,14 @@ import 'constants/colors.dart';
 import 'providers/auth_provider.dart';
 import 'screens/login_screen.dart';
 import 'screens/dashboard_screen.dart';
+import 'screens/transfer_screen.dart';
+import 'screens/topup_screen.dart';
+import 'screens/qr_scanner_screen.dart';
+import 'screens/pin_screen.dart';
+import 'screens/pin_verification_screen.dart';
+import 'screens/profile_screen.dart';
+import 'screens/bill_payment_screen.dart';
+import 'services/qr_service.dart';
 
 void main() {
   runApp(const MyApp());
@@ -31,6 +39,25 @@ class MyApp extends StatelessWidget {
           useMaterial3: true,
         ),
         home: const AuthWrapper(),
+        routes: {
+          '/dashboard': (context) => const DashboardScreen(),
+          '/transfer': (context) {
+            final qrData = ModalRoute.of(context)?.settings.arguments as PaymentQRData?;
+            return TransferScreen(qrData: qrData);
+          },
+          '/topup': (context) => const TopUpScreen(),
+          '/qr_scanner': (context) => const QRScannerScreen(),
+          '/pin': (context) => PinScreen(
+            isLogin: (ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?)?['isLogin'] ?? false,
+            isSetup: (ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?)?['isSetup'] ?? false,
+          ),
+          '/pin-verification': (context) => const PinVerificationScreen(
+            title: 'Verify PIN',
+            description: 'Enter your PIN to continue',
+          ),
+          '/profile': (context) => const ProfileScreen(),
+          '/bill_payment': (context) => const BillPaymentScreen(),
+        },
       ),
     );
   }

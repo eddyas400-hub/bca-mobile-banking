@@ -44,8 +44,7 @@ class TestIconScreen extends StatelessWidget {
                   const SizedBox(height: 16),
                   IconButton(
                     onPressed: () {
-                      print('Person icon tapped!');
-                      // Simple navigation test without ProfileScreen dependency
+                      // Person icon tapped - Simple navigation test without ProfileScreen dependency
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
                           content: Text('Person icon works! Navigation successful.'),
@@ -74,7 +73,7 @@ class TestIconScreen extends StatelessWidget {
                 Column(
                   children: [
                     IconButton(
-                      onPressed: () => print('Home tapped'),
+                      onPressed: () {}, // Home tapped
                       icon: Icon(Icons.home, color: AppColors.textSecondary),
                     ),
                     const Text('Home'),
@@ -83,7 +82,7 @@ class TestIconScreen extends StatelessWidget {
                 Column(
                   children: [
                     IconButton(
-                      onPressed: () => print('Settings tapped'),
+                      onPressed: () {}, // Settings tapped
                       icon: Icon(Icons.settings, color: AppColors.textSecondary),
                     ),
                     const Text('Settings'),
@@ -92,7 +91,7 @@ class TestIconScreen extends StatelessWidget {
                 Column(
                   children: [
                     IconButton(
-                      onPressed: () => print('Search tapped'),
+                      onPressed: () {}, // Search tapped
                       icon: Icon(Icons.search, color: AppColors.textSecondary),
                     ),
                     const Text('Search'),

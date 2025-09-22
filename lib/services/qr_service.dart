@@ -13,10 +13,10 @@ class QRService {
 
       // Clean the QR data
       final cleanData = qrData.trim();
-
+      
       // Determine QR code type and process accordingly
       final qrType = _determineQRType(cleanData);
-
+      
       switch (qrType) {
         case QRCodeType.payment:
           return _processPaymentQR(cleanData);
@@ -41,17 +41,17 @@ class QRService {
     if (_isPaymentQR(data)) {
       return QRCodeType.payment;
     }
-
+    
     // Check for URL
     if (data.startsWith('http://') || data.startsWith('https://')) {
       return QRCodeType.url;
     }
-
+    
     // Check for JSON
     if (data.startsWith('{') && data.endsWith('}')) {
       return QRCodeType.json;
     }
-
+    
     // Default to text
     return QRCodeType.text;
   }
@@ -66,7 +66,7 @@ class QRService {
       RegExp(r'qris:', caseSensitive: false),
       RegExp(r'bca:', caseSensitive: false),
     ];
-
+    
     return paymentPatterns.any((pattern) => pattern.hasMatch(data));
   }
 
@@ -74,7 +74,7 @@ class QRService {
   static QRCodeResult _processPaymentQR(String data) {
     try {
       PaymentQRData? paymentData;
-
+      
       // Try different payment QR formats
       if (data.toLowerCase().startsWith('bca:')) {
         paymentData = _parseBCAQR(data);
@@ -96,25 +96,24 @@ class QRService {
           return QRCodeResult.error('Invalid payment QR format');
         }
       }
-
+      
       if (paymentData == null) {
         return QRCodeResult.error('Could not parse payment information');
       }
-
+      
       // Validate payment data
       final validation = _validatePaymentData(paymentData);
       if (!validation.isValid) {
         return QRCodeResult.error(validation.errorMessage!);
       }
-
+      
       return QRCodeResult.success(
         type: QRCodeType.payment,
         data: data,
         paymentData: paymentData,
       );
     } catch (e) {
-      return QRCodeResult.error(
-          'Failed to process payment QR: ${e.toString()}');
+      return QRCodeResult.error('Failed to process payment QR: ${e.toString()}');
     }
   }
 
@@ -123,11 +122,10 @@ class QRService {
     try {
       // Example: bca://pay?account=1234567890&name=John%20Doe&amount=100000
       final uri = Uri.parse(data);
-
+      
       return PaymentQRData(
         accountNumber: uri.queryParameters['account'] ?? '',
-        accountName:
-            Uri.decodeComponent(uri.queryParameters['name'] ?? 'Unknown'),
+        accountName: Uri.decodeComponent(uri.queryParameters['name'] ?? 'Unknown'),
         bankCode: 'BCA',
         amount: double.tryParse(uri.queryParameters['amount'] ?? '0'),
         description: Uri.decodeComponent(uri.queryParameters['desc'] ?? ''),
@@ -142,11 +140,10 @@ class QRService {
     try {
       // Example: upi://pay?pa=user@bank&pn=User%20Name&am=100.00
       final uri = Uri.parse(data);
-
+      
       return PaymentQRData(
         accountNumber: uri.queryParameters['pa'] ?? '',
-        accountName:
-            Uri.decodeComponent(uri.queryParameters['pn'] ?? 'Unknown'),
+        accountName: Uri.decodeComponent(uri.queryParameters['pn'] ?? 'Unknown'),
         bankCode: 'UPI',
         amount: double.tryParse(uri.queryParameters['am'] ?? '0'),
         description: Uri.decodeComponent(uri.queryParameters['tn'] ?? ''),
@@ -161,15 +158,15 @@ class QRService {
     if (data.accountNumber.isEmpty) {
       return ValidationResult(false, 'Account number is required');
     }
-
+    
     if (data.accountNumber.length < 8) {
       return ValidationResult(false, 'Invalid account number format');
     }
-
+    
     if (data.amount != null && data.amount! < 0) {
       return ValidationResult(false, 'Amount cannot be negative');
     }
-
+    
     return ValidationResult(true, null);
   }
 
@@ -180,7 +177,7 @@ class QRService {
       if (!uri.hasScheme) {
         return QRCodeResult.error('Invalid URL format');
       }
-
+      
       return QRCodeResult.success(
         type: QRCodeType.url,
         data: data,

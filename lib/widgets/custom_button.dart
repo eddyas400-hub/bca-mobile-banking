@@ -49,15 +49,13 @@ class CustomButton extends StatelessWidget {
       height: height,
       child: ElevatedButton(
         onPressed: isDisabled ? null : () {
-          print('DEBUG: CustomButton onPressed called');
-          print('DEBUG: isDisabled: $isDisabled, isLoading: $isLoading, onPressed != null: ${onPressed != null}');
           onPressed?.call();
         },
         style: ElevatedButton.styleFrom(
           backgroundColor: _getBackgroundColor(isDisabled),
           foregroundColor: _getTextColor(isDisabled),
           elevation: type == ButtonType.primary ? 2 : 0,
-          shadowColor: AppColors.primaryBlue.withOpacity(0.3),
+          shadowColor: AppColors.primaryBlue.withValues(alpha: 0.3),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(borderRadius),
             side: _getBorderSide(isDisabled),

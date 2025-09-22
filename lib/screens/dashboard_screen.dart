@@ -7,7 +7,6 @@ import '../models/transaction.dart';
 import '../services/account_service.dart';
 import '../services/qr_service.dart';
 import '../providers/auth_provider.dart';
-import '../widgets/custom_button.dart';
 import '../services/auth_service.dart';
 import 'profile_screen.dart';
 import 'login_screen.dart';
@@ -323,7 +322,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               icon: Icons.phone_android,
               label: AppStrings.topUp,
               onTap: () {
-                print('DEBUG: TopUp button tapped on dashboard');
+                // TopUp button tapped
                 Navigator.of(context).pushNamed('/topup');
               },
             ),

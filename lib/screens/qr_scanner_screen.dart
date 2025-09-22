@@ -85,17 +85,16 @@ class _QRScannerScreenState extends State<QRScannerScreen>
   Future<void> _checkCameraPermission() async {
     try {
       var status = await Permission.camera.status;
-
+      
       if (status.isDenied) {
         status = await Permission.camera.request();
       }
-
+      
       setState(() {
         _hasPermission = status == PermissionStatus.granted;
         if (!_hasPermission) {
           if (status == PermissionStatus.permanentlyDenied) {
-            _errorMessage =
-                'Camera permission permanently denied. Please enable it in Settings.';
+            _errorMessage = 'Camera permission permanently denied. Please enable it in Settings.';
           } else if (status == PermissionStatus.denied) {
             _errorMessage = 'Camera permission is required to scan QR codes';
           } else {
@@ -137,29 +136,29 @@ class _QRScannerScreenState extends State<QRScannerScreen>
         timer.cancel();
         return;
       }
-
+      
       _checkCameraHealth();
     });
   }
-
+  
   void _checkCameraHealth() async {
     if (controller == null || !_hasPermission) return;
-
+    
     // Camera health check - mobile_scanner handles this internally
     // Just check if controller is still valid
     if (!mounted) {
       return;
     }
   }
-
+  
   Future<void> _retryInitialization() async {
     setState(() {
       _errorMessage = null;
       _hasPermission = false;
     });
-
+    
     await _checkCameraPermission();
-
+    
     if (_hasPermission && mounted) {
       // Recreate the QR view
       setState(() {});
@@ -174,7 +173,7 @@ class _QRScannerScreenState extends State<QRScannerScreen>
 
   void _adaptLightingConditions() async {
     if (controller == null) return;
-
+    
     try {
       // Adjust flash based on scan attempts
       if (_scanAttempts > 3 && !_isFlashOn) {
@@ -183,11 +182,12 @@ class _QRScannerScreenState extends State<QRScannerScreen>
           _isFlashOn = true;
         });
       }
-
+      
       // Auto-focus periodically
       if (_isAutoFocusEnabled) {
         await controller.start();
       }
+      
     } catch (e) {
       if (kDebugMode) {
         debugPrint('Adaptive scanning error: $e');
@@ -200,16 +200,16 @@ class _QRScannerScreenState extends State<QRScannerScreen>
     setState(() {
       _scanResult = success ? _scanResult : null;
     });
-
+    
     // Haptic feedback
     if (success) {
       HapticFeedback.lightImpact();
     } else {
       HapticFeedback.heavyImpact();
     }
-
+    
     // Audio feedback would go here if needed
-
+    
     // Show snackbar for failed scans
     if (!success && message != null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -224,44 +224,43 @@ class _QRScannerScreenState extends State<QRScannerScreen>
 
   Future<void> _handleQRCodeDetected(String qrCode) async {
     if (_isProcessing) return;
-
+    
     // Prevent duplicate scans
-    if (_lastScannedCode == qrCode &&
-        _lastScanTime != null &&
-        DateTime.now().difference(_lastScanTime!) <
-            const Duration(seconds: 2)) {
+    if (_lastScannedCode == qrCode && 
+        _lastScanTime != null && 
+        DateTime.now().difference(_lastScanTime!) < const Duration(seconds: 2)) {
       return;
     }
-
+    
     setState(() {
       _isProcessing = true;
       _lastScannedCode = qrCode;
       _lastScanTime = DateTime.now();
       _scanAttempts++;
     });
-
+    
     try {
       // Provide haptic feedback
       await _triggerHapticFeedback();
-
+      
       // Pause scanning temporarily
       await _pauseCameraWithRetry();
-
+      
       // Process the QR code using QRService with timeout
       final result = await QRService.processQRCode(qrCode)
           .timeout(const Duration(seconds: 10));
-
+      
       if (mounted) {
         if (result.isSuccess) {
           setState(() {
             _scanAttempts = 0; // Reset on successful scan
           });
-
+          
           _showSuccessAnimation();
-
+          
           // Show success feedback
           _showScanFeedback(success: true);
-
+          
           // Call the callback if provided
           if (widget.onQRCodeScanned != null) {
             widget.onQRCodeScanned!(qrCode);
@@ -271,26 +270,29 @@ class _QRScannerScreenState extends State<QRScannerScreen>
           }
         } else {
           _showScanFeedback(
-              success: false,
-              message: result.errorMessage ?? 'Invalid QR Code');
-          _showErrorDialog('Invalid QR Code',
-              result.errorMessage ?? 'Unknown error occurred');
+            success: false,
+            message: result.errorMessage ?? 'Invalid QR Code'
+          );
+          _showErrorDialog('Invalid QR Code', result.errorMessage ?? 'Unknown error occurred');
           await _resumeScanningWithDelay();
         }
       }
     } on TimeoutException {
       if (mounted) {
         _showScanFeedback(
-            success: false, message: 'QR code processing timed out');
-        _showErrorDialog(
-            'Timeout Error', 'QR code processing timed out. Please try again.');
+          success: false,
+          message: 'QR code processing timed out'
+        );
+        _showErrorDialog('Timeout Error', 'QR code processing timed out. Please try again.');
         await _resumeScanningWithDelay();
       }
     } catch (e) {
       if (mounted) {
-        _showScanFeedback(success: false, message: 'Failed to process QR code');
-        _showErrorDialog(
-            'Scan Error', 'Failed to process QR code: ${e.toString()}');
+        _showScanFeedback(
+          success: false,
+          message: 'Failed to process QR code'
+        );
+        _showErrorDialog('Scan Error', 'Failed to process QR code: ${e.toString()}');
         await _resumeScanningWithDelay();
       }
     } finally {
@@ -329,7 +331,7 @@ class _QRScannerScreenState extends State<QRScannerScreen>
     try {
       // Provide haptic feedback
       HapticFeedback.mediumImpact();
-
+      
       // Vibrate if available
       if (await Vibration.hasVibrator() ?? false) {
         Vibration.vibrate(duration: 200);
@@ -350,28 +352,25 @@ class _QRScannerScreenState extends State<QRScannerScreen>
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(title,
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-              color: AppColors.textPrimary,
-            )),
-        content: Text(message,
-            style: const TextStyle(
-              fontSize: 16,
-              color: AppColors.textSecondary,
-            )),
+        title: Text(title, style: const TextStyle(
+          fontSize: 18,
+          fontWeight: FontWeight.w600,
+          color: AppColors.textPrimary,
+        )),
+        content: Text(message, style: const TextStyle(
+          fontSize: 16,
+          color: AppColors.textSecondary,
+        )),
         actions: [
           TextButton(
             onPressed: () {
               Navigator.of(context).pop();
             },
-            child: Text('OK',
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.primary,
-                )),
+            child: Text('OK', style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: AppColors.primary,
+            )),
           ),
         ],
       ),
@@ -393,7 +392,7 @@ class _QRScannerScreenState extends State<QRScannerScreen>
         break;
     }
   }
-
+  
   void _showPaymentQRResult(PaymentQRData paymentData) {
     showDialog(
       context: context,
@@ -407,10 +406,8 @@ class _QRScannerScreenState extends State<QRScannerScreen>
             _buildInfoRow('Account Name', paymentData.accountName),
             _buildInfoRow('Bank', paymentData.bankCode),
             if (paymentData.amount != null)
-              _buildInfoRow(
-                  'Amount', 'Rp ${paymentData.amount!.toStringAsFixed(0)}'),
-            if (paymentData.description != null &&
-                paymentData.description!.isNotEmpty)
+              _buildInfoRow('Amount', 'Rp ${paymentData.amount!.toStringAsFixed(0)}'),
+            if (paymentData.description != null && paymentData.description!.isNotEmpty)
               _buildInfoRow('Description', paymentData.description!),
           ],
         ),
@@ -430,7 +427,7 @@ class _QRScannerScreenState extends State<QRScannerScreen>
       ),
     );
   }
-
+  
   void _showUrlQRResult(String url) {
     showDialog(
       context: context,
@@ -471,7 +468,7 @@ class _QRScannerScreenState extends State<QRScannerScreen>
       ),
     );
   }
-
+  
   void _showGenericQRResult(String qrCode) {
     showDialog(
       context: context,
@@ -512,7 +509,7 @@ class _QRScannerScreenState extends State<QRScannerScreen>
       ),
     );
   }
-
+  
   Widget _buildInfoRow(String label, String value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
@@ -547,15 +544,14 @@ class _QRScannerScreenState extends State<QRScannerScreen>
       _showErrorDialog('Camera Error', 'Camera not initialized');
       return;
     }
-
+    
     try {
       await controller!.toggleTorch();
       setState(() {
         _isFlashOn = !_isFlashOn;
       });
     } catch (e) {
-      _showErrorDialog(
-          'Flash Error', 'Failed to toggle flash: ${e.toString()}');
+      _showErrorDialog('Flash Error', 'Failed to toggle flash: ${e.toString()}');
     }
   }
 
@@ -564,15 +560,14 @@ class _QRScannerScreenState extends State<QRScannerScreen>
       _showErrorDialog('Camera Error', 'Camera not initialized');
       return;
     }
-
+    
     try {
       await controller!.switchCamera();
       setState(() {
         _isFlashOn = false; // Reset flash when flipping camera
       });
     } catch (e) {
-      _showErrorDialog(
-          'Camera Error', 'Failed to flip camera: ${e.toString()}');
+      _showErrorDialog('Camera Error', 'Failed to flip camera: ${e.toString()}');
     }
   }
 
@@ -675,8 +670,7 @@ class _QRScannerScreenState extends State<QRScannerScreen>
             ),
             const SizedBox(height: 16),
             Text(
-              _errorMessage ??
-                  'Please grant camera permission to scan QR codes',
+              _errorMessage ?? 'Please grant camera permission to scan QR codes',
               style: const TextStyle(
                 fontSize: 16,
                 color: Colors.white70,
@@ -691,8 +685,7 @@ class _QRScannerScreenState extends State<QRScannerScreen>
                   onPressed: _retryInitialization,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.secondary,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 24, vertical: 12),
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                   ),
                   child: const Text(
                     'Retry',
@@ -709,8 +702,7 @@ class _QRScannerScreenState extends State<QRScannerScreen>
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 24, vertical: 12),
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                   ),
                   child: const Text(
                     'Open Settings',
@@ -768,8 +760,7 @@ class _QRScannerScreenState extends State<QRScannerScreen>
                   onPressed: _retryInitialization,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 24, vertical: 12),
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                   ),
                   child: const Text(
                     'Retry',
@@ -786,8 +777,7 @@ class _QRScannerScreenState extends State<QRScannerScreen>
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.secondary,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 24, vertical: 12),
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                   ),
                   child: const Text(
                     'Cancel',

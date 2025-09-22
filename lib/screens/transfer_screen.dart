@@ -11,7 +11,7 @@ import '../widgets/custom_text_field.dart';
 
 class TransferScreen extends StatefulWidget {
   final PaymentQRData? qrData;
-
+  
   const TransferScreen({Key? key, this.qrData}) : super(key: key);
 
   @override
@@ -25,7 +25,7 @@ class _TransferScreenState extends State<TransferScreen> {
   final _amountController = TextEditingController();
   final _descriptionController = TextEditingController();
   final AccountService _accountService = AccountService();
-
+  
   List<Account> _accounts = [];
   Account? _selectedAccount;
   bool _isLoading = false;
@@ -72,10 +72,10 @@ class _TransferScreenState extends State<TransferScreen> {
     }
 
     setState(() => _isProcessing = true);
-
+    
     try {
       final amount = double.parse(_amountController.text.replaceAll(',', ''));
-
+      
       // Check if sufficient balance
       if (_selectedAccount!.availableBalance < amount) {
         _showErrorSnackBar('Insufficient balance');
@@ -87,18 +87,19 @@ class _TransferScreenState extends State<TransferScreen> {
         fromAccountId: _selectedAccount!.id,
         toAccountNumber: _accountNumberController.text,
         amount: amount,
-        description: _descriptionController.text.isEmpty
-            ? 'Transfer to ${_accountNameController.text}'
+        description: _descriptionController.text.isEmpty 
+            ? 'Transfer to ${_accountNameController.text}' 
             : _descriptionController.text,
-        recipientName: _accountNameController.text.isEmpty
-            ? null
+        recipientName: _accountNameController.text.isEmpty 
+            ? null 
             : _accountNameController.text,
       );
 
       setState(() => _isProcessing = false);
-
+      
       // Show success dialog
       _showSuccessDialog(transaction);
+      
     } catch (e) {
       setState(() => _isProcessing = false);
       _showErrorSnackBar('Transfer failed: $e');
@@ -138,8 +139,7 @@ class _TransferScreenState extends State<TransferScreen> {
                 children: [
                   _buildInfoRow('Reference', transaction.reference ?? 'N/A'),
                   _buildInfoRow('To', transaction.recipientName ?? 'N/A'),
-                  _buildInfoRow(
-                      'Account', transaction.recipientAccount ?? 'N/A'),
+                  _buildInfoRow('Account', transaction.recipientAccount ?? 'N/A'),
                 ],
               ),
             ),
@@ -217,8 +217,7 @@ class _TransferScreenState extends State<TransferScreen> {
     if (amount < 10000) {
       return 'Minimum transfer amount is Rp 10,000';
     }
-    if (_selectedAccount != null &&
-        amount > _selectedAccount!.availableBalance) {
+    if (_selectedAccount != null && amount > _selectedAccount!.availableBalance) {
       return 'Amount exceeds available balance';
     }
     return null;
@@ -279,8 +278,7 @@ class _TransferScreenState extends State<TransferScreen> {
                                   return DropdownMenuItem<Account>(
                                     value: account,
                                     child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
+                                      crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
                                         Text(
                                           account.accountNumber,
@@ -364,8 +362,7 @@ class _TransferScreenState extends State<TransferScreen> {
                     SizedBox(
                       width: double.infinity,
                       child: CustomButton(
-                        text:
-                            _isProcessing ? 'Processing...' : 'Transfer Money',
+                        text: _isProcessing ? 'Processing...' : 'Transfer Money',
                         onPressed: _isProcessing ? null : _processTransfer,
                         backgroundColor: AppColors.primary,
                       ),

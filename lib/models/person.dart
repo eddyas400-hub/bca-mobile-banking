@@ -3,7 +3,7 @@ import 'package:flutter/foundation.dart';
 /// A comprehensive Person class that represents a person entity with all necessary
 /// attributes and operations. This class follows Flutter/Dart best practices
 /// and provides a complete implementation for person-related functionality.
-class Person {
+class Person with Diagnosticable {
   // Private fields with proper naming conventions
   final String _id;
   final String _firstName;
@@ -280,8 +280,7 @@ class Person {
   }
 
   /// Returns a formatted string representation of the person
-  @override
-  String toString() {
+  String toStringSimple() {
     return 'Person(id: $_id, name: $fullName, email: $_email, age: $age, active: $_isActive)';
   }
 

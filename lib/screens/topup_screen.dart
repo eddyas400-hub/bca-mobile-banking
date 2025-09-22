@@ -71,7 +71,7 @@ class _TopUpScreenState extends State<TopUpScreen> {
   @override
   void initState() {
     super.initState();
-    print('DEBUG: TopUpScreen initState called');
+    // TopUpScreen initialized
     _loadAccounts();
   }
 
@@ -143,20 +143,15 @@ class _TopUpScreenState extends State<TopUpScreen> {
   }
 
   Future<void> _processTopUp() async {
-    print('DEBUG: _processTopUp called');
-    print('DEBUG: Form valid: ${_formKey.currentState?.validate()}');
-    print('DEBUG: Selected provider: $_selectedProvider');
-    print('DEBUG: Selected account: ${_selectedAccount?.name}');
-    print('DEBUG: Phone number: ${_phoneNumberController.text}');
-    print('DEBUG: Amount: ${_amountController.text}');
+    // Processing top-up request
     
     if (!_formKey.currentState!.validate()) {
-      print('DEBUG: Form validation failed');
+      // Form validation failed
       return;
     }
 
     if (_selectedProvider == null) {
-      print('DEBUG: No provider selected');
+      // No provider selected
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Please select a provider'),
@@ -167,7 +162,7 @@ class _TopUpScreenState extends State<TopUpScreen> {
     }
 
     if (_selectedAccount == null) {
-      print('DEBUG: No account selected');
+      // No account selected
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Please select an account'),
@@ -430,7 +425,7 @@ class _TopUpScreenState extends State<TopUpScreen> {
                       width: double.infinity,
                       child: Builder(
                         builder: (context) {
-                          print('DEBUG: Building TopUp button - _isProcessing: $_isProcessing');
+                          // Building TopUp button
                           return CustomButton(
                             text: _isProcessing ? 'Processing...' : 'Top Up Now',
                             onPressed: _isProcessing ? null : _processTopUp,
